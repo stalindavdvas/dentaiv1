@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Detección Dental</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        .image-container img {
+            max-height: 400px;
+            object-fit: contain;
+        }
+
+        .progress-bar {
+            display: none;
+            height: 8px;
+            background-color: #4caf50;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .detection-item {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border-radius: 0.375rem;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .no-detections {
+            padding: 1rem;
+            text-align: center;
+            color: #6b7280;
+            background-color: #f9fafb;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+<div class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-3xl font-bold">Sistema de Detección de Enfermedades Dentales</h1>
+            <p class="mt-2">Análisis mediante Inteligencia Artificial</p>
+        </div>
+    </header>
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Image Upload Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Subir Imagen</h2>
+                <form id="uploadForm" class="space-y-4">
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                        <input type="file" id="fileInput" accept="image/*" class="hidden">
+                        <label for="fileInput"
+                               class="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            Seleccionar Imagen
+                        </label>
+                    </div>
+                    <div class="image-container">
+                        <img id="previewImage" src="" alt="Vista previa de la imagen" class="hidden w-full rounded-lg border">
+                    </div>
+                    <button type="submit" class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        Procesar Imagen
+                    </button>
+                    <div class="progress-bar" id="progressBar"></div>
+                </form>
+            </div>
+            <!-- Results Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Resultados del Análisis</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="image-container">
+                        <h3 class="text-lg font-medium mb-2">Imagen Original</h3>
+                        <img id="originalImage" src="" class="w-full rounded-lg border hidden"/>
+                    </div>
+                    <div class="image-container">
+                        <h3 class="text-lg font-medium mb-2">Detección</h3>
+                        <img id="resultImage" src="" class="w-full rounded-lg border hidden"/>
+                    </div>
+                </div>
+
+                <!-- Sección de Resultados de Detección -->
+                <div id="detectionResults" class="detection-results hidden">
+                    <h3 class="text-lg font-semibold mb-3">Enfermedades Detectadas:</h3>
+                    <div id="detectionsList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Recomendaciones</h2>
+            <div id="recommendations" class="chat-container bg-gray-50 p-4 rounded-lg mb-4">
+                <p class="text-gray-500">Aquí aparecerán las recomendaciones basadas en el análisis.</p>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const uploadForm = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('fileInput');
+    const previewImage = document.getElementById('previewImage');
+    const progressBar = document.getElementById('progressBar');
+    const originalImage = document.getElementById('originalImage');
+    const resultImage = document.getElementById('resultImage');
+    const detectionResults = document.getElementById('detectionResults');
+    const detectionsList = document.getElementById('detectionsList');
+    const recommendations = document.getElementById('recommendations');
+
+    fileInput.onchange = () => {
+        const file = fileInput.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                previewImage.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    uploadForm.onsubmit = async (e) => {
+        e.preventDefault();
+        progressBar.style.display = 'block';
+        progressBar.style.width = '0%';
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 10;
+            if (progress <= 90) {
+                progressBar.style.width = progress + '%';
+            }
+        }, 300);
+
+        try {
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            clearInterval(interval);
+            progressBar.style.width = '100%';
+
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            progressBar.style.display = 'none';
+            originalImage.src = data.original + '?t=' + new Date().getTime();
+            resultImage.src = data.result + '?t=' + new Date().getTime();
+            originalImage.classList.remove('hidden');
+            resultImage.classList.remove('hidden');
+            detectionResults.classList.remove('hidden');
+            detectionsList.innerHTML = '';
+            recommendations.innerHTML = '';
+
+            if (data.detections && data.detections.length > 0) {
+                data.detections.forEach(detection => {
+                    const detectionDiv = document.createElement('div');
+                    detectionDiv.className = 'detection-item';
+                    detectionDiv.innerHTML = `
+                        <div class="text-lg font-medium">Enfermedad: ${detection.disease}</div>
+                        <div class="text-md text-gray-600">Nivel de Confianza: ${detection.confidence}</div>
+                    `;
+                    detectionsList.appendChild(detectionDiv);
+
+                    const recommendation = document.createElement('p');
+                    recommendation.textContent = `Recomendación para ${detection.disease}: Consulte a un dentista si la confianza es superior al 50%.`;
+                    recommendations.appendChild(recommendation);
+                });
+            } else {
+                detectionsList.innerHTML = '<div class="no-detections"><p>No se han detectado enfermedades.</p></div>';
+                recommendations.innerHTML = '<p class="text-gray-500">No se encontraron enfermedades en la imagen analizada.</p>';
+            }
+        } catch (error) {
+            clearInterval(interval);
+            progressBar.style.display = 'none';
+            console.error('Error:', error);
+            alert('Error al procesar la imagen.');
+        }
+    };
+</script>
+</body>
+</html>

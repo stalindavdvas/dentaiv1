@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados de Detección</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .image-section {
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        .image-section img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+        }
+        .results {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .results ul {
+            list-style: none;
+            padding: 0;
+        }
+        .results li {
+            background: #fff;
+            margin: 5px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Resultados de Detección</h1>
+
+        <!-- Imagen Original -->
+        <div class="image-section">
+            <h2>Imagen Original</h2>
+            <img src="path/to/original_image.jpg" alt="Imagen Original">
+        </div>
+
+        <!-- Resultados del modelo YOLO -->
+        <div class="image-section">
+            <h2>Resultados del Modelo YOLO</h2>
+            <img src="path/to/yolo_result.jpg" alt="Resultado YOLO">
+            <div class="results">
+                <h3>Enfermedades Detectadas:</h3>
+                <ul>
+                    <li>Enfermedad 1 - Confianza: 90%</li>
+                    <li>Enfermedad 2 - Confianza: 85%</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Resultados del modelo Personalizado -->
+        <div class="image-section">
+            <h2>Resultados del Modelo Personalizado</h2>
+            <img src="path/to/custom_model_result.jpg" alt="Resultado Modelo Personalizado">
+            <div class="results">
+                <h3>Enfermedades Detectadas:</h3>
+                <ul>
+                    <li>Enfermedad 1 - Confianza: 92%</li>
+                    <li>Enfermedad 3 - Confianza: 80%</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

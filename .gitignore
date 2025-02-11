@@ -1,0 +1,36 @@
+# Entorno virtual
+venv/
+env/
+.venv/
+.env
+# Archivos Python compilados
+__pycache__/
+*.pyc
+*.pyo
+
+# Archivos de configuración del editor
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Archivos de logs
+*.log
+
+# Archivos de bases de datos
+*.sqlite
+
+# Archivos generados
+static/uploads/
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos temporales
+*.swp
+*.bak

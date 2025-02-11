@@ -1,0 +1,22 @@
+# Ignorar archivos y directorios comunes
+.git
+.gitignore
+.env
+.vscode
+__pycache__
+*.pyc
+*.log
+*.sqlite3
+
+# Ignorar dependencias locales
+.venv/
+env/
+node_modules/
+
+# Ignorar archivos sensibles
+secrets.json
+credentials.json
+
+# Ignorar archivos temporales
+*.tmp
+*.bak
