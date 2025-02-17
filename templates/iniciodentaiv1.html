@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Detección Dental</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        .image-container img {
+            max-height: 400px;
+            object-fit: contain;
+        }
+        .progress-bar {
+            display: none;
+            height: 8px;
+            background-color: #4caf50;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .detection-item {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border-radius: 0.375rem;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .no-detections {
+            padding: 1rem;
+            text-align: center;
+            color: #6b7280;
+            background-color: #f9fafb;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        .zoom-container {
+            display: none;
+            margin-top: 1rem;
+        }
+        .zoom-frame {
+            width: 100%;
+            height: 300px;
+            border: 2px solid #ccc;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .zoom-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .image-container img:hover {
+            cursor: zoom-in;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-blue-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-6">
+                <h1 class="text-3xl font-bold">Sistema de Detección de Enfermedades Dentales DENTAI</h1>
+                <p class="mt-2">Minería de Datos</p>
+            </div>
+        </header>
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Image Upload Section -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">Subir Imagen</h2>
+                    <form id="uploadForm" class="space-y-4">
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <!-- Botón para seleccionar imagen -->
+                            <input type="file" id="fileInput" accept="image/*" class="hidden">
+                            <label for="fileInput"
+                                class="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                Seleccionar Imagen
+                            </label>
+                            <!-- Botón para abrir la cámara -->
+                            <input type="file" id="cameraInput" accept="image/*" capture="camera" class="hidden">
+                            <label for="cameraInput"
+                                class="cursor-pointer bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 ml-2">
+                                Usar Cámara
+                            </label>
+                        </div>
+                        <!-- Sección de cámara en tiempo real -->
+                        <div id="cameraSection" class="hidden">
+                            <video id="video" autoplay playsinline class="w-full rounded-lg border"></video>
+                            <button id="captureButton" class="w-full bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 mt-2">
+                                Capturar Fotograma
+                            </button>
+                            <canvas id="canvas" class="hidden"></canvas>
+                        </div>
+                        <button type="submit"
+                            class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                            Procesar Imagen
+                        </button>
+                        <div class="progress-bar" id="progressBar"></div>
+                        <!-- Contenedor para el zoom -->
+                        <div class="zoom-container mt-4 hidden">
+                            <h3 class="text-lg font-medium mb-2">Vista Ampliada</h3>
+                            <div class="zoom-frame bg-gray-100 p-2 rounded-lg">
+                                <img id="zoomImage" src="" alt="Zoom" class="w-full h-full object-contain">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <!-- Results Section -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">Resultados del Análisis</h2>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="image-container">
+                            <h3 class="text-lg font-medium mb-2">Imagen Original</h3>
+                            <img id="originalImage" src="" alt="Imagen Original" class="w-full rounded-lg border hidden" />
+                        </div>
+                        <div class="image-container">
+                            <h3 class="text-lg font-medium mb-2">Modelo YOLO</h3>
+                            <img id="yoloImage" src="" alt="Resultado YOLO" class="w-full rounded-lg border hidden" />
+                        </div>
+                        <div class="image-container">
+                            <h3 class="text-lg font-medium mb-2">Modelo Personalizado</h3>
+                            <img id="customImage" src="" alt="Resultado Personalizado" class="w-full rounded-lg border hidden" />
+                        </div>
+                    </div>
+                    <!-- Sección de Resultados de Detección -->
+                    <div id="detectionResults" class="detection-results hidden mt-6">
+                        <h3 class="text-lg font-semibold mb-3">Resultados del Modelo YOLO:</h3>
+                        <div id="yoloDetections"></div>
+                        <h3 class="text-lg font-semibold mb-3 mt-6">Resultados del Modelo Personalizado:</h3>
+                        <div id="customDetections"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Chat Section -->
+            <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Recomendaciones</h2>
+                <div id="recommendations" class="chat-container bg-gray-50 p-4 rounded-lg mb-4">
+                    <p class="text-gray-500">Aquí aparecerán las recomendaciones basadas en el análisis.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('fileInput');
+        const cameraInput = document.getElementById('cameraInput');
+        const originalImage = document.getElementById('originalImage');
+        const progressBar = document.getElementById('progressBar');
+        const yoloImage = document.getElementById('yoloImage');
+        const customImage = document.getElementById('customImage');
+        const detectionResults = document.getElementById('detectionResults');
+        const yoloDetections = document.getElementById('yoloDetections');
+        const customDetections = document.getElementById('customDetections');
+        const recommendations = document.getElementById('recommendations');
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureButton = document.getElementById('captureButton');
+        const cameraSection = document.getElementById('cameraSection');
+        const zoomContainer = document.querySelector('.zoom-container');
+        const zoomImage = document.getElementById('zoomImage');
+
+        // Manejar selección de archivo
+        fileInput.onchange = () => {
+            const file = fileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    originalImage.src = e.target.result;
+                    originalImage.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        // Manejar captura desde la cámara
+        cameraInput.onchange = () => {
+            const file = cameraInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    originalImage.src = e.target.result;
+                    originalImage.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        // Acceder a la cámara en tiempo real
+        let stream;
+        document.querySelector('label[for="cameraInput"]').addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                cameraSection.classList.remove('hidden');
+            } catch (error) {
+                console.error('Error al acceder a la cámara:', error);
+                alert('No se pudo acceder a la cámara.');
+            }
+        });
+
+        // Capturar fotograma desde la cámara
+        captureButton.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Mostrar la imagen capturada
+            originalImage.src = canvas.toDataURL('image/jpeg');
+            originalImage.classList.remove('hidden');
+
+            // Detener la transmisión de la cámara
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+            }
+            cameraSection.classList.add('hidden');
+        });
+
+        // Procesar imagen
+        uploadForm.onsubmit = async (e) => {
+            e.preventDefault();
+            progressBar.style.display = 'block';
+            progressBar.style.width = '0%';
+
+            let formData;
+            if (originalImage.src.startsWith('data:image')) {
+                // Si la imagen proviene de la cámara o fue seleccionada
+                const blob = await fetch(originalImage.src).then(res => res.blob());
+                formData = new FormData();
+                formData.append('file', blob, 'captured_image.jpg');
+            } else {
+                // Si la imagen fue seleccionada desde archivos
+                formData = new FormData(uploadForm);
+            }
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                if (progress <= 90) {
+                    progressBar.style.width = progress + '%';
+                }
+            }, 300);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await response.json();
+                clearInterval(interval);
+                progressBar.style.width = '100%';
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                progressBar.style.display = 'none';
+                originalImage.src = data.original + '?t=' + new Date().getTime();
+                yoloImage.src = data.yolo_result + '?t=' + new Date().getTime();
+                customImage.src = data.custom_result + '?t=' + new Date().getTime();
+                originalImage.classList.remove('hidden');
+                yoloImage.classList.remove('hidden');
+                customImage.classList.remove('hidden');
+                detectionResults.classList.remove('hidden');
+                yoloDetections.innerHTML = '';
+                customDetections.innerHTML = '';
+                recommendations.innerHTML = '';
+
+                // Mostrar las detecciones y las recomendaciones
+                if (data.yolo_detections && data.yolo_detections.length > 0) {
+                    yoloDetections.innerHTML = '';
+                    data.yolo_detections.forEach(detection => {
+                        const detectionDiv = document.createElement('div');
+                        detectionDiv.className = 'detection-item';
+                        detectionDiv.innerHTML = `
+                            <div class="text-lg font-medium">Enfermedad: ${detection.disease}</div>
+                            <div class="text-md text-gray-600">Nivel de Confianza: ${detection.confidence}</div>
+                        `;
+                        yoloDetections.appendChild(detectionDiv);
+                    });
+                } else {
+                    yoloDetections.innerHTML = '<div class="no-detections"><p>No se han detectado enfermedades en el modelo YOLO.</p></div>';
+                }
+                if (data.custom_detections) {
+                    customDetections.innerHTML = '';
+                    const detectionDiv = document.createElement('div');
+                    detectionDiv.className = 'detection-item';
+                    detectionDiv.innerHTML = `
+                        <div class="text-lg font-medium">Enfermedad: ${data.custom_detections.disease}</div>
+                        <div class="text-md text-gray-600">Nivel de Confianza: ${data.custom_detections.confidence}</div>
+                    `;
+                    customDetections.appendChild(detectionDiv);
+                } else {
+                    customDetections.innerHTML = '<div class="no-detections"><p>No se han detectado enfermedades en el modelo personalizado.</p></div>';
+                }
+                // Mostrar la recomendación generada por DistilGPT-2
+                if (data.recommendation) {
+                    recommendations.innerHTML = `<p class="text-gray-600">${data.recommendation}</p>`;
+                }
+            } catch (error) {
+                clearInterval(interval);
+                progressBar.style.display = 'none';
+                console.error('Error:', error);
+                alert('Error al procesar la imagen.');
+            }
+        };
+
+        // Función para mostrar el zoom
+        function showZoom(imageSrc) {
+            zoomImage.src = imageSrc;
+            zoomContainer.classList.remove('hidden');
+        }
+
+        // Función para ocultar el zoom
+        function hideZoom() {
+            zoomContainer.classList.add('hidden');
+        }
+
+        // Event listeners para las imágenes
+        yoloImage.addEventListener('mouseenter', () => {
+            showZoom(yoloImage.src);
+        });
+
+        yoloImage.addEventListener('mouseleave', hideZoom);
+
+        customImage.addEventListener('mouseenter', () => {
+            showZoom(customImage.src);
+        });
+
+        customImage.addEventListener('mouseleave', hideZoom);
+    </script>
+</body>
+</html>

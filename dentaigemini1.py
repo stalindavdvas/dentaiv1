@@ -61,7 +61,7 @@ def load_model_based_on_image(image_path):
         return YOLO('modelos/bestrayosx.pt')  # Modelo para rayos X
     else:
         print("Imagen detectada como a color. Cargando modelo 'bestyolo8.pt'...")
-        return YOLO('modelos/bestyolo8.pt')  # Modelo para imágenes a color
+        return YOLO('modelos/best.pt')  # Modelo para imágenes a color
 
 
 # Cargar modelo personalizado
@@ -83,7 +83,7 @@ def iou_metric(y_true, y_pred):
 
 
 with custom_object_scope({'iou_metric': iou_metric}):
-    custom_model = load_model('modelos/modelo_dental.h5')
+    custom_model = load_model('modelos/modelo_dentalv1.h5')
 
 
 # Función para preprocesar imágenes
@@ -171,7 +171,7 @@ def refine_with_gemini(initial_recommendation, disease, confidence):
 
 @app.route('/')
 def index():
-    return render_template('iniciocamera.html')
+    return render_template('iniciodentaiv1.html')
 
 
 @app.route('/upload', methods=['POST'])
